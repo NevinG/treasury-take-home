@@ -1,0 +1,2 @@
+The first thing I did was do more research into COLA, and I learned about the public TBB COLA registry (https://ttbonline.gov/colasonline/publicSearchColasBasic.do).
+My first thought is that I can use this to get a dataset of approved COLA applications + label images so I can verify that my tool works. The COLA registry only includes approved labels, so I would also need to come up with a way to create invalid labels. I found some online datasets, but they didn't include images of the labels, so I decided to just scrape the data myself from the cola registry.
