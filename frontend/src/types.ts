@@ -27,4 +27,5 @@ export interface LabelVerdict {
 /** Response from POST /api/verify. */
 export interface VerifyResponse {
   verdict: LabelVerdict;
+  engine?: "cloud" | "local" | "local-fallback";
 }

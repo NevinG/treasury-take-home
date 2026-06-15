@@ -17,6 +17,7 @@ export interface BatchItem {
   verdict?: LabelVerdict;
   issues?: string[];
   error?: string;
+  engine?: string;
 }
 
 const isImage = (f: File) => f.type.startsWith("image/") || /\.(png|jpe?g|gif|webp|bmp)$/i.test(f.name);
@@ -139,6 +140,7 @@ export async function runBatch(
           brand: brand || undefined,
           verdict: res.verdict,
           issues: summarizeIssues(res.verdict),
+          engine: res.engine,
         });
       } catch (e) {
         onUpdate(it.id, { status: "error", error: e instanceof Error ? e.message : "Failed" });

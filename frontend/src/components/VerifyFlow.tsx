@@ -119,6 +119,7 @@ export function VerifyFlow({ offline }: { offline: boolean }) {
     return c;
   }, [items]);
   const done = items.filter((it) => it.status !== "pending").length;
+  const usedFallback = items.some((it) => it.engine === "local-fallback");
 
   const visible = useMemo(() => {
     const f = items.filter((it) => {
@@ -165,6 +166,9 @@ export function VerifyFlow({ offline }: { offline: boolean }) {
             <span className={`badge ${viewed.status}`}>{STATUS_LABEL[viewed.status]}</span>
           )}
         </div>
+        {viewed.engine === "local-fallback" && (
+          <div className="fallback-banner">Cloud engine was unavailable — verified with the offline engine (lower accuracy).</div>
+        )}
 
         <h4 className="detail-section">Label images</h4>
         {viewed.images.length ? (
@@ -193,6 +197,12 @@ export function VerifyFlow({ offline }: { offline: boolean }) {
   if (phase === "results") {
     return (
       <>
+        {usedFallback && (
+          <div className="fallback-banner">
+            Cloud engine was unavailable for some applications — they were verified with the offline
+            engine (lower accuracy).
+          </div>
+        )}
         <div className="batch-summary">
           <SummaryChip label="All" n={items.length} active={filter === "all"} onClick={() => setFilter("all")} tone="all" />
           <SummaryChip label="Pass" n={counts.pass} active={filter === "pass"} onClick={() => setFilter("pass")} tone="pass" />

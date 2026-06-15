@@ -363,6 +363,15 @@ textarea.appinput:focus {
   margin-bottom: 20px;
   font-size: 14px;
 }
+.fallback-banner {
+  background: var(--amber-bg);
+  color: var(--amber);
+  border: 1px solid #f0dcaf;
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  font-size: 13.5px;
+}
 .spinner {
   width: 22px;
   height: 22px;

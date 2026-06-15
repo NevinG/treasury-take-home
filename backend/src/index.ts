@@ -26,22 +26,23 @@ app.post("/api/verify", upload.array("images"), async (req, res) => {
   if (!files.length) {
     return res.status(400).json({ error: "No label images were uploaded." });
   }
-  // Use the fully-local engine when asked (settings toggle) or when no API key is set.
-  const offline = String(req.body?.offline) === "true" || !process.env.GEMINI_API_KEY;
-  try {
-    // No application text (e.g. a batch item with no matching form) is allowed: we
-    // still read the label, but every element comes back as "review" since there is
-    // nothing to compare against.
-    const rows = applicationText.trim()
-      ? (offline ? parseApplicationLocal(applicationText) : await extractApplication(applicationText))
-      : [];
-    const filename = files[0].originalname;
-    const row = findApplicationRow(rows, filename) || rows[0] || null;
 
-    const images = files.map((f) => ({
-      data: f.buffer.toString("base64"),
-      mimeType: f.mimetype || "image/png",
-    }));
+  const filename = files[0].originalname;
+  const images = files.map((f) => ({
+    data: f.buffer.toString("base64"),
+    mimeType: f.mimetype || "image/png",
+  }));
+
+  // Run the full verify pipeline with either the cloud or the fully-local engine.
+  async function pipeline(useLocal: boolean) {
+    // No application text (e.g. a batch item with no matching form) is allowed: we
+    // still read the label, but every element comes back as "review".
+    const rows = applicationText.trim()
+      ? useLocal
+        ? parseApplicationLocal(applicationText)
+        : await extractApplication(applicationText)
+      : [];
+    const row = findApplicationRow(rows, filename) || rows[0] || null;
     const expected = {
       brand_name: row?.brand_name ?? "",
       fanciful_name: row?.fanciful_name ?? "",
@@ -51,12 +52,27 @@ app.post("/api/verify", upload.array("images"), async (req, res) => {
       producer_name: row?.producer_name ?? "",
       country_of_origin: row?.country_of_origin ?? "",
     };
-
-    const verification = offline
+    const verification = useLocal
       ? await verifyLabelLocal(images, expected)
       : await verifyLabel(images, expected);
-    const verdict = buildVerdict(verification, row);
-    res.json({ verdict, engine: offline ? "local" : "cloud" });
+    return buildVerdict(verification, row);
+  }
+
+  // Offline when asked (settings toggle) or when no API key is configured.
+  const forceLocal = String(req.body?.offline) === "true" || !process.env.GEMINI_API_KEY;
+
+  try {
+    if (forceLocal) {
+      return res.json({ verdict: await pipeline(true), engine: "local" });
+    }
+    try {
+      res.json({ verdict: await pipeline(false), engine: "cloud" });
+    } catch (cloudErr) {
+      // Cloud endpoint unreachable/blocked/errored — fall back to the local engine so
+      // the tool keeps working on restricted networks.
+      console.error("Cloud engine failed — falling back to the offline engine:", cloudErr);
+      res.json({ verdict: await pipeline(true), engine: "local-fallback" });
+    }
   } catch (err) {
     console.error("verify error:", err);
     res.status(500).json({ error: err instanceof Error ? err.message : "Verification failed." });
