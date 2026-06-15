@@ -44,6 +44,24 @@ body {
   margin: 0;
   font-weight: 650;
 }
+.demo-btn {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--accent);
+}
+.demo-btn:hover {
+  background: #f0f3f7;
+  border-color: var(--accent);
+}
 .settings-btn {
   position: absolute;
   right: 16px;
@@ -469,9 +487,29 @@ code {
   width: 100%;
   max-width: 560px;
 }
+.modal-card.wide {
+  max-width: 760px;
+}
 .modal-card h3 {
   margin: 0 0 4px;
   font-size: 16px;
+}
+.video-wrap {
+  position: relative;
+  width: 100%;
+  padding-bottom: 56.25%; /* 16:9 */
+  height: 0;
+  margin: 10px 0 4px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #000;
+}
+.video-wrap iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
 }
 .modal-card .appinput {
   margin-top: 10px;
