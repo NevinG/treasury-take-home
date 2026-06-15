@@ -1,0 +1,22 @@
+# Dependencies & build output
+node_modules/
+dist/
+
+# Secrets (keep .env.example)
+.env
+.env.local
+
+# Python
+__pycache__/
+*.pyc
+
+# Evaluation cache — regenerable; RESULTS.md is the committed result
+data-exploration/model_test/.cache.json
+
+# Raw dataset — shipped as split parts data-exploration/dataset.zip.001..006
+# (GitHub caps single files at 100MB). The reassembled zip and the unzipped
+# folders are reproduced locally and are not tracked.
+data-exploration/dataset.zip
+data-exploration/label_images/
+data-exploration/application/
+data-exploration/batch_sample/
