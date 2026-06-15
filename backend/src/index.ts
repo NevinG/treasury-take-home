@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import multer from "multer";
 import { extractApplication, verifyLabel } from "./gemini";
+import { parseApplicationLocal, verifyLabelLocal } from "./local";
 import { buildVerdict, findApplicationRow } from "./matching";
 
 const app = express();
@@ -25,11 +26,15 @@ app.post("/api/verify", upload.array("images"), async (req, res) => {
   if (!files.length) {
     return res.status(400).json({ error: "No label images were uploaded." });
   }
+  // Use the fully-local engine when asked (settings toggle) or when no API key is set.
+  const offline = String(req.body?.offline) === "true" || !process.env.GEMINI_API_KEY;
   try {
     // No application text (e.g. a batch item with no matching form) is allowed: we
     // still read the label, but every element comes back as "review" since there is
     // nothing to compare against.
-    const rows = applicationText.trim() ? await extractApplication(applicationText) : [];
+    const rows = applicationText.trim()
+      ? (offline ? parseApplicationLocal(applicationText) : await extractApplication(applicationText))
+      : [];
     const filename = files[0].originalname;
     const row = findApplicationRow(rows, filename) || rows[0] || null;
 
@@ -47,9 +52,11 @@ app.post("/api/verify", upload.array("images"), async (req, res) => {
       country_of_origin: row?.country_of_origin ?? "",
     };
 
-    const verification = await verifyLabel(images, expected);
+    const verification = offline
+      ? await verifyLabelLocal(images, expected)
+      : await verifyLabel(images, expected);
     const verdict = buildVerdict(verification, row);
-    res.json({ verdict });
+    res.json({ verdict, engine: offline ? "local" : "cloud" });
   } catch (err) {
     console.error("verify error:", err);
     res.status(500).json({ error: err instanceof Error ? err.message : "Verification failed." });

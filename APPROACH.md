@@ -55,10 +55,19 @@ approved labels (must not be wrongly rejected) and 15 with one corrupted applica
 The guiding metric: the only true errors are a good label hard-rejected, or a bad label
 silently passed — a "needs review" outcome is acceptable (it routes to a human).
 
+## Offline fallback
+
+The agency's network blocks outbound traffic to many cloud endpoints, so there's a
+fully-local engine (toggle in ⚙ Settings): a deterministic parser for the application
+text and on-device OCR (`tesseract.js`) for the label — no outbound traffic. It feeds the
+same deterministic comparison layer, so the verdict is structured identically, just at
+lower accuracy. The backend picks the engine per request (and auto-falls back to local if
+no API key is set).
+
 ## Trade-offs / limitations
 
-- Verification depends on a cloud API; the model call site is isolated behind one
-  constant so it can be swapped for a self-hosted model in a restricted network.
+- The default engine depends on a cloud API; Offline mode removes that dependency at the
+  cost of accuracy (OCR on stylized fonts; can't judge warning legibility).
 - The warning check enforces presence, ALL-CAPS heading, legibility, and the required
   statement, but not single-character wording exactness — vision-LLM OCR isn't
   character-perfect, and a strict diff falsely rejects legitimate labels.

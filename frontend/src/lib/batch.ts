@@ -120,6 +120,7 @@ export function summarizeIssues(v: LabelVerdict): string[] {
 export async function runBatch(
   items: BatchItem[],
   concurrency: number,
+  offline: boolean,
   onUpdate: (id: string, patch: Partial<BatchItem>) => void
 ): Promise<void> {
   let idx = 0;
@@ -131,7 +132,7 @@ export async function runBatch(
         continue;
       }
       try {
-        const res: VerifyResponse = await verify(it.images, it.appText);
+        const res: VerifyResponse = await verify(it.images, it.appText, offline);
         const brand = res.verdict.fields.find((f) => f.key === "brand_name")?.evidence;
         onUpdate(it.id, {
           status: res.verdict.overall,

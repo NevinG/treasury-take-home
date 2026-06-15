@@ -65,8 +65,9 @@ Requires Node 18+ and a Google Gemini API key (https://aistudio.google.com/apike
 ```bash
 cd backend
 npm install
-cp .env.example .env        # then set GEMINI_API_KEY
-npm run dev                 # http://localhost:3001
+cp .env.example .env         # then set GEMINI_API_KEY
+npm run fetch-ocr-model      # optional: downloads the local OCR model for Offline mode
+npm run dev                  # http://localhost:3001
 ```
 
 ### Frontend
@@ -135,6 +136,22 @@ See [`data-exploration/`](data-exploration/) for how the dataset was produced (t
 scraper, per-application `.txt` builder, and a ready-made `batch_sample/` for trying batch
 mode).
 
+## Offline mode (no cloud calls)
+
+The assessment notes that the agency's network blocks outbound traffic to many cloud
+endpoints. So there's a fully-local fallback engine with **no outbound network traffic**:
+
+- **Application parsing** → a deterministic local parser (regex over labeled fields).
+- **Label reading** → on-device OCR via `tesseract.js` (the English model is downloaded
+  once with `npm run fetch-ocr-model` and then runs entirely locally).
+
+Toggle it from the **⚙ Settings** button (top-right) → "Offline mode". The choice is
+remembered, and an **Offline** pill shows in the header while it's on. The same
+deterministic comparison logic produces the verdict, so results are structured the same
+way — just lower accuracy (OCR struggles with stylized label fonts, and it can't judge
+warning legibility). The backend also falls back to local automatically if
+`GEMINI_API_KEY` is unset. Each `/api/verify` response reports which `engine` ran.
+
 ## Assumptions
 
 - **Multi-panel uploads.** All images for one product are uploaded together; in a batch,
@@ -151,9 +168,9 @@ mode).
 
 ## Notes & trade-offs
 
-- **Cloud dependency.** Verification calls Google's API. A production deployment behind a
-  restricted network would swap the single `MODEL` constant in `backend/src/gemini.ts`
-  for an approved/self-hosted vision model — the call site is isolated.
+- **Cloud dependency.** The default (cloud) engine calls Google's API. For restricted
+  networks there's a built-in **Offline mode** (above) that runs entirely on-device; the
+  engine is selected per request, so the cloud call site stays isolated.
 - **Government Warning wording.** Presence, capitalization, legibility, and the required
   statement are enforced; a *single-character* wording change is not reliably caught,
   because vision-LLM OCR isn't character-perfect and a strict diff falsely rejects many

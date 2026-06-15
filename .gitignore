@@ -2,6 +2,9 @@
 node_modules/
 dist/
 
+# Offline OCR model (download with: cd backend && npm run fetch-ocr-model)
+backend/ocr-data/
+
 # Secrets (keep .env.example)
 .env
 .env.local

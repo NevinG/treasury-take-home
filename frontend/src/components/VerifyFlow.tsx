@@ -23,7 +23,7 @@ const isImageFile = (f: File) =>
 const isAcceptable = (f: File) => isImageFile(f) || /\.(txt|csv)$/i.test(f.name);
 const fileKey = (f: File) => `${f.name}:${f.size}:${f.lastModified}`;
 
-export function VerifyFlow() {
+export function VerifyFlow({ offline }: { offline: boolean }) {
   const [files, setFiles] = useState<File[]>([]);
   const [base, setBase] = useState<BatchItem[]>([]);
   const [hasAppFiles, setHasAppFiles] = useState(false);
@@ -105,7 +105,7 @@ export function VerifyFlow() {
     setPage(1);
     setPhase("results");
     setRunning(true);
-    runBatch(toRun, CONCURRENCY, (id, patch) =>
+    runBatch(toRun, CONCURRENCY, offline, (id, patch) =>
       setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...patch } : it)))
     ).finally(() => setRunning(false));
   }
