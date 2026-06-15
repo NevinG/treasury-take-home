@@ -8,7 +8,7 @@ in the same screen.
 - **Frontend:** React SPA (Vite + TypeScript)
 - **Backend:** Express + TypeScript (Node)
 - **AI:** Google Gemini (`gemini-2.5-flash-lite`) via the `@google/genai` SDK
-- **Deployed app:** _<add your deployed URL here>_
+- **Deployed app:** https://ttb-label-verify-28jbrw.azurewebsites.net
 - **Approach write-up:** [APPROACH.md](APPROACH.md)
 
 ## How it works
@@ -110,6 +110,13 @@ To try batch mode in the UI, choose **Add a folder** and pick `data-exploration/
 
 > Only the `.001`–`.006` parts are tracked; the reassembled `dataset.zip` and the unzipped
 > folders are git-ignored.
+
+## Deployment
+
+Deploys to a single **Azure Linux App Service** (the Express backend serves the API and
+the built React app). Infra is Terraform (`infra/`); a GitHub Actions workflow
+(`.github/workflows/deploy.yml`) redeploys on every push to `main`. Defaults to the **F1
+Free** plan. Full step-by-step in **[DEPLOY.md](DEPLOY.md)**.
 
 ## API
 

@@ -1,0 +1,6 @@
+# Copy to terraform.tfvars and fill in. (terraform.tfvars is git-ignored.)
+gemini_api_key = "YOUR_GEMINI_API_KEY"
+
+# Optional overrides:
+# location  = "eastus"
+# sku_name  = "B1"     # bump from F1 (free) for always-on / more CPU

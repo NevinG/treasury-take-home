@@ -5,6 +5,16 @@ dist/
 # Offline OCR model (download with: cd backend && npm run fetch-ocr-model)
 backend/ocr-data/
 
+# Built frontend copied into the backend at deploy time
+backend/public/
+
+# Terraform
+infra/.terraform/
+infra/.terraform.lock.hcl
+infra/*.tfstate
+infra/*.tfstate.*
+infra/terraform.tfvars
+
 # Secrets (keep .env.example)
 .env
 .env.local

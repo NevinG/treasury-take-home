@@ -1,4 +1,7 @@
 import "dotenv/config";
+import { existsSync } from "fs";
+import { dirname, join, resolve } from "path";
+import { fileURLToPath } from "url";
 import express from "express";
 import cors from "cors";
 import multer from "multer";
@@ -78,6 +81,17 @@ app.post("/api/verify", upload.array("images"), async (req, res) => {
     res.status(500).json({ error: err instanceof Error ? err.message : "Verification failed." });
   }
 });
+
+// In production we serve the built React app from ./public (CI copies frontend/dist
+// here), so the whole thing is one deployable. The API routes above take precedence.
+const publicDir = resolve(dirname(fileURLToPath(import.meta.url)), "..", "public");
+if (existsSync(publicDir)) {
+  app.use(express.static(publicDir));
+  app.get("*", (req, res, next) => {
+    if (req.path.startsWith("/api")) return next();
+    res.sendFile(join(publicDir, "index.html"));
+  });
+}
 
 app.listen(PORT, () => {
   console.log(`TTB backend listening on http://localhost:${PORT}`);
