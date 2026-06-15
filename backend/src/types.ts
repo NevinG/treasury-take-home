@@ -24,6 +24,8 @@ export interface WarningReading {
 /** Application-aware verification of all mandatory TTB label elements. */
 export interface VerificationResult {
   brand: FieldCheck;
+  /** Does the application's brand OR fanciful name appear anywhere on the label? */
+  brand_on_label: boolean;
   class_type: FieldCheck;
   alcohol_content: FieldCheck;
   net_contents: FieldCheck;

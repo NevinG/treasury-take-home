@@ -6,10 +6,18 @@ I started by researching COLA and found the public TTB COLA registry
 (https://ttbonline.gov/colasonline/publicSearchColasBasic.do). It seemed like the best
 source of real approved applications *with* label artwork to test against. Existing
 online datasets didn't include the label images, so I scraped the registry myself
-(`data-exploration/scrape_cola.py`) into `cola_recent_1000.csv` plus the label images.
+(`data-exploration/scrape_cola.py`) into `cola_recent_1000.csv` plus the label images,
+then trimmed to the **732 most recent applications (issued 2020–present)** via
+`trim_dataset.py` so the tool is exercised on current data and form revisions.
 Because the registry only contains *approved* labels, I also had to manufacture invalid
 cases for testing — I do that by corrupting one application field so it contradicts the
 label (see Evaluation below).
+
+A real-world wrinkle this surfaced: the COLA printable form has changed over the years,
+and the 2020+ revisions usually omit **net contents** and **alcohol content** on the
+certificate (they're only on the label). So the engine treats an element the application
+doesn't specify as "not applicable" — it doesn't check the label for it or flag it —
+rather than forcing a review.
 
 ## The engine: the LLM reads, deterministic code judges
 

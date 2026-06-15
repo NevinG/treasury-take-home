@@ -16,24 +16,6 @@ function norm(s: string): string {
   return (s || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
 }
 
-// --- Deterministic brand comparison ---
-// The label's brand is read reliably by the model, but its match/mismatch verdict
-// for brand is inconsistent (it both false-rejects "RESERVA" and rationalizes
-// "Pindar" == "ZEPHYR HOLLOW"). We compare the application's brand/fanciful names
-// against the read brand here: a match needs a shared significant word or a
-// spelling/spacing variant; otherwise it is a mismatch.
-const BRAND_STOP = new Set([
-  "the", "and", "of", "by", "a", "vineyard", "vineyards", "winery", "wineries",
-  "distillery", "distilleries", "distilling", "distillers", "cellars", "cellar",
-  "brewing", "brewery", "breweries", "company", "co", "llc", "inc", "ltd", "corp",
-  "reserve", "reserva", "riserva", "estate", "wines", "wine", "vintners", "family",
-  "brand", "spirits", "imports", "import",
-]);
-
-function sigTokens(s: string): string[] {
-  return norm(s).split(" ").filter((t) => t && !BRAND_STOP.has(t));
-}
-
 // True only if the string carries a real value (not blank or a placeholder like
 // "N/A", "none", "-"). Used so a missing application value can never count as a match.
 const PLACEHOLDER = new Set(["na", "n", "a", "none", "null", "nil", "tbd", "unknown", "nan", "x"]);
@@ -41,19 +23,6 @@ function meaningful(s: string): boolean {
   const cleaned = (s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
   if (!cleaned) return false;
   return cleaned.split(" ").some((t) => !PLACEHOLDER.has(t));
-}
-
-function brandStatus(brand: string, fanciful: string, labelValue: string): FieldStatus {
-  const expTokens = [...sigTokens(brand), ...sigTokens(fanciful)];
-  if (expTokens.length === 0) return "match"; // nothing meaningful to disprove
-  if (!labelValue.trim()) return "review";
-  const labTokens = sigTokens(labelValue);
-  if (expTokens.some((t) => labTokens.includes(t))) return "match";
-  const labJoin = labTokens.join("");
-  for (const ej of [sigTokens(brand).join(""), sigTokens(fanciful).join("")]) {
-    if (ej.length >= 4 && labJoin.length >= 4 && (labJoin.includes(ej) || ej.includes(labJoin))) return "match";
-  }
-  return "mismatch";
 }
 
 // --- Deterministic class/type comparison via major TTB product class ---
@@ -140,13 +109,16 @@ function netStatus(expected: string, labelValue: string): FieldStatus | null {
 
 const US_SIGNAL = /\b(domestic|usa|u\.?s\.?a?\.?|united states(?: of america)?|america)\b/i;
 const IMPORT_SIGNAL = /\b(import|imported|importado|imported by|imported from)\b/i;
-const FOREIGN = /\b(spain|españa|espana|italy|italia|france|french|germany|deutschland|portugal|chile|argentina|australia|new zealand|south africa|mexico|canada|austria|greece|hungary|israel|japan|scotland|ireland|england|united kingdom|netherlands|china|brazil|peru|uruguay|georgia|croatia|slovenia|sorrento)\b/i;
+const FOREIGN = /\b(spain|españa|espana|italy|italia|france|french|germany|deutschland|portugal|chile|argentina|australia|new zealand|south africa|mexico|canada|austria|hungary|israel|japan|scotland|ireland|england|united kingdom|netherlands|china|brazil|peru|uruguay|croatia|slovenia|sorrento)\b/i;
+// US state names — a label naming a state (e.g. "GEORGIA", "California") is domestic,
+// even though some state names ("Georgia") are also countries.
+const US_STATE = /\b(alabama|alaska|arizona|arkansas|california|colorado|connecticut|delaware|florida|georgia|hawaii|idaho|illinois|indiana|iowa|kansas|kentucky|louisiana|maine|maryland|massachusetts|michigan|minnesota|mississippi|missouri|montana|nebraska|nevada|new hampshire|new jersey|new mexico|new york|north carolina|north dakota|ohio|oklahoma|oregon|pennsylvania|rhode island|south carolina|south dakota|tennessee|texas|utah|vermont|virginia|washington|west virginia|wisconsin|wyoming)\b/i;
 
 function labelIsForeign(labelValue: string): boolean {
   const s = labelValue || "";
-  if (US_SIGNAL.test(s)) return false; // the label itself asserts a US origin
-  if (IMPORT_SIGNAL.test(s)) return true;
+  if (IMPORT_SIGNAL.test(s)) return true; // explicit import statement
   if (/\b(product|produce|producto|produkt|vino|vin)\s+(of|de|d['e])\b/i.test(s) && FOREIGN.test(s)) return true;
+  if (US_SIGNAL.test(s) || US_STATE.test(s)) return false; // US country or a US state → domestic
   return FOREIGN.test(s);
 }
 
@@ -259,15 +231,34 @@ export function findApplicationRow(rows: ApplicationRow[], filename: string): Ap
   return null;
 }
 
+// Name & address: TTB requires a bottler/producer/importer name + address on the label,
+// but the entity there can legitimately differ from the applicant (contract production,
+// DBA, importer of record). So presence of a bona fide name + address is sufficient — we
+// don't fail on a different company or street; a human confirms exact accuracy.
+function nameAddressStatus(labelValue: string): FieldStatus {
+  return labelValue.trim() ? "match" : "review";
+}
+
+// Brand matches if the application's brand OR fanciful name appears anywhere on the
+// label (the model reports this presence directly — more reliable than comparing a
+// single "primary brand" reading, since either name may appear).
+function brandStatus(onLabel: boolean, labelValue: string): FieldStatus {
+  if (onLabel) return "match";
+  return labelValue.trim() ? "mismatch" : "review";
+}
+
 // Deterministic comparator per mandatory field. Returns the authoritative status,
 // or null to keep the model's own status (used by class/country when they abstain).
 const COMPARATORS: Record<string, (app: ApplicationRow | null, expected: string, label: string) => FieldStatus | null> = {
-  brand_name: (app, _e, label) => brandStatus(app?.brand_name ?? "", app?.fanciful_name ?? "", label),
+  // brand_name is judged by the model: the application brand or fanciful name may
+  // appear anywhere on the label (maker, product line, or series), which a single
+  // read brand value can't capture. The model's reorder + anti-rationalization rules
+  // make its brand verdict reliable; a deterministic token check here was too strict.
   class_type: (_app, expected, label) => classStatus(expected, label),
   alcohol_content: (_app, expected, label) => abvStatus(expected, label),
   net_contents: (_app, expected, label) => netStatus(expected, label),
   country_of_origin: (_app, expected, label) => countryStatus(expected, label),
-  // name_address has no deterministic rule — the model's presence judgment stands.
+  name_address: (_app, _expected, label) => nameAddressStatus(label),
 };
 
 export function buildVerdict(v: VerificationResult, app: ApplicationRow | null): LabelVerdict {
@@ -284,31 +275,41 @@ export function buildVerdict(v: VerificationResult, app: ApplicationRow | null):
     { key: "country_of_origin", label: "Country of origin", expected: app?.country_of_origin ?? "", fc: v.country_of_origin },
   ];
 
-  const fields: FieldVerdict[] = defs.map((d) => {
+  // Does the application specify anything at all? (Some COLA form revisions omit
+  // fields like net contents / alcohol entirely.)
+  const hasApplication = defs.some((d) => meaningful(d.expected));
+
+  const fields: FieldVerdict[] = [];
+  for (const d of defs) {
     const labelValue = d.fc?.label_value || "";
 
-    // No application value to compare against — we cannot verify this element.
-    // (Blank fields, placeholders, or no application provided at all must NOT match.)
     if (!meaningful(d.expected)) {
-      return {
-        key: d.key, label: d.label, expected: d.expected, evidence: labelValue,
+      // The application doesn't provide this element. If the application exists, the
+      // form simply doesn't include it — so we don't check the label for it (omit the
+      // row). Only when there is NO application at all do we surface it for review.
+      if (hasApplication) continue;
+      fields.push({
+        key: d.key, label: d.label, expected: "", evidence: labelValue,
         status: "review" as FieldStatus,
-        note: "No application value provided for this element — cannot verify.",
-      };
+        note: "No application details to compare against.",
+      });
+      continue;
     }
 
     let status = normalizeStatus(d.fc?.status);
     let note = d.fc?.note?.trim() || DEFAULT_NOTES[status];
 
     // Replace the model's (unreliable) verdict with the deterministic comparison.
-    const decided = COMPARATORS[d.key]?.(app, d.expected, labelValue);
+    const decided = d.key === "brand_name"
+      ? brandStatus(v.brand_on_label, labelValue)
+      : COMPARATORS[d.key]?.(app, d.expected, labelValue);
     if (decided && decided !== status) {
       status = decided;
       note = `Application ${d.expected} vs label "${labelValue}" — ${DEFAULT_NOTES[decided].toLowerCase()}`;
     }
 
-    return { key: d.key, label: d.label, expected: d.expected, evidence: labelValue, status, note };
-  });
+    fields.push({ key: d.key, label: d.label, expected: d.expected, evidence: labelValue, status, note });
+  }
 
   const warning = warningVerdict(v.government_warning);
   const hasMismatch =

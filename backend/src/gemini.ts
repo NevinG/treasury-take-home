@@ -97,6 +97,7 @@ const VERIFY_SCHEMA = {
   type: Type.OBJECT,
   properties: {
     brand: FIELD,
+    brand_on_label: { type: Type.BOOLEAN },
     class_type: FIELD,
     alcohol_content: FIELD,
     net_contents: FIELD,
@@ -114,7 +115,7 @@ const VERIFY_SCHEMA = {
       required: ["present", "heading", "text", "prefix_all_caps", "legible"],
     },
   },
-  required: ["brand", "class_type", "alcohol_content", "net_contents", "name_address", "country_of_origin", "government_warning"],
+  required: ["brand", "brand_on_label", "class_type", "alcohol_content", "net_contents", "name_address", "country_of_origin", "government_warning"],
 };
 
 export interface ExpectedValues {
@@ -221,7 +222,8 @@ For each element, produce the three properties IN THIS ORDER, and they must be s
 
 Return ONLY JSON shaped exactly like:
 {
- "brand":            {"label_value":"", "note":"", "status":""},
+ "brand":            {"label_value":"<the brand/maker text on the label>", "note":"", "status":""},
+ "brand_on_label":   <true if the application's brand name OR its fanciful name appears ANYWHERE on the label — as the maker, the product/series name, or fine print; case/spacing-insensitive. "${expected.brand_name}" / "${expected.fanciful_name}". A match on EITHER one is true.>,
  "class_type":       {"label_value":"", "note":"", "status":""},
  "alcohol_content":  {"label_value":"", "note":"", "status":""},
  "net_contents":     {"label_value":"", "note":"", "status":""},

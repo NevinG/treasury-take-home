@@ -4,12 +4,13 @@ import { verify } from "../api";
 import type { LabelVerdict, VerifyResponse } from "../types";
 
 export type Overall = "pass" | "flag" | "fail";
-export type ItemStatus = Overall | "pending" | "error";
+export type ItemStatus = Overall | "pending" | "error" | "noimages";
 
 export interface BatchItem {
   id: string;
   images: File[];
   appText: string;
+  hasImages: boolean;
   hasAppData: boolean;
   status: ItemStatus;
   brand?: string;
@@ -55,10 +56,13 @@ function parseCsv(text: string): string[][] {
 
 export interface BuildResult {
   items: BatchItem[];
-  unmatchedApps: number; // application records with no images uploaded
+  hasAppFiles: boolean; // any .txt/.csv was uploaded
+  imageGroupCount: number; // distinct applications that have images
 }
 
-/** Turn an arbitrary set of dropped files into one BatchItem per application. */
+/** Turn an arbitrary set of dropped files into one BatchItem per application —
+ *  the UNION of ids seen in image names and in application files, so it works no
+ *  matter which the user uploads first. */
 export async function buildBatch(files: File[]): Promise<BuildResult> {
   const images = files.filter(isImage);
   const txts = files.filter(isTxt);
@@ -91,21 +95,17 @@ export async function buildBatch(files: File[]): Promise<BuildResult> {
     appText.set(id, await t.text());
   }
 
-  const items: BatchItem[] = [];
-  for (const [id, imgs] of groups) {
-    items.push({
-      id,
-      images: imgs.sort((a, b) => a.name.localeCompare(b.name)),
-      appText: appText.get(id) || "",
-      hasAppData: appText.has(id),
-      status: "pending",
-    });
-  }
-  items.sort((a, b) => a.id.localeCompare(b.id));
+  const ids = new Set<string>([...groups.keys(), ...appText.keys()]);
+  const items: BatchItem[] = [...ids].sort().map((id) => ({
+    id,
+    images: (groups.get(id) || []).sort((a, b) => a.name.localeCompare(b.name)),
+    appText: appText.get(id) || "",
+    hasImages: groups.has(id),
+    hasAppData: appText.has(id),
+    status: "pending" as ItemStatus,
+  }));
 
-  const matchedIds = new Set(items.map((i) => i.id));
-  const unmatchedApps = [...appText.keys()].filter((id) => !matchedIds.has(id)).length;
-  return { items, unmatchedApps };
+  return { items, hasAppFiles: txts.length + csvs.length > 0, imageGroupCount: groups.size };
 }
 
 export function summarizeIssues(v: LabelVerdict): string[] {
@@ -126,6 +126,10 @@ export async function runBatch(
   async function worker() {
     while (idx < items.length) {
       const it = items[idx++];
+      if (!it.images.length) {
+        onUpdate(it.id, { status: "noimages" }); // can't verify a label with no image
+        continue;
+      }
       try {
         const res: VerifyResponse = await verify(it.images, it.appText);
         const brand = res.verdict.fields.find((f) => f.key === "brand_name")?.evidence;

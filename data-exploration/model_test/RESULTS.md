@@ -13,11 +13,9 @@ Negative catch rate by corrupted field:
 
 | Field | Caught |
 |---|---|
-| brand | 3/3 |
-| class | 3/3 |
-| alcohol | 3/3 |
-| net | 3/3 |
-| country | 3/3 |
+| brand | 5/5 |
+| class | 5/5 |
+| country | 5/5 |
 
 ## Errors (0)
 

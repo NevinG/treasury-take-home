@@ -81,10 +81,11 @@ Open http://localhost:5173.
 
 ## Test data
 
-Real approved applications scraped from the public TTB COLA registry (label images +
-per-application `.txt` files + a ready-made `batch_sample/`) are shipped as a ~490 MB zip,
-**split into 6 parts** so each stays under GitHub's 100 MB file limit:
-`data-exploration/dataset.zip.001` … `dataset.zip.006`.
+Real approved applications scraped from the public TTB COLA registry — **732 of the most
+recent (issued 2020–present)** — are shipped as label images + per-application `.txt`
+files + a ready-made `batch_sample/`, zipped and **split into 6 parts** (~70 MB each) so
+each stays under GitHub's 100 MB file limit: `data-exploration/dataset.zip.001` …
+`dataset.zip.006`.
 
 Reassemble and unzip them in place:
 

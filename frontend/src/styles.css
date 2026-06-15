@@ -262,7 +262,8 @@ body {
   background: var(--red-bg);
   color: var(--red);
 }
-.badge.pending {
+.badge.pending,
+.badge.noimages {
   background: var(--gray-bg);
   color: var(--gray);
 }
@@ -403,8 +404,30 @@ code {
 .chip-x:hover {
   color: var(--red);
 }
-.single-app-text {
-  margin: 8px 0 4px;
+/* Modal (application details popup) */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 15, 25, 0.5);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  z-index: 60;
+}
+.modal-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.25);
+  padding: 22px;
+  width: 100%;
+  max-width: 560px;
+}
+.modal-card h3 {
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+.modal-card .appinput {
+  margin-top: 10px;
 }
 
 /* Batch — summary filter chips */
@@ -450,6 +473,9 @@ code {
 }
 .summary-chip.fail .summary-n {
   color: var(--red);
+}
+.summary-chip.muted .summary-n {
+  color: var(--gray);
 }
 
 /* Batch — progress */

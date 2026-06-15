@@ -48,7 +48,9 @@ RESULTS = HERE / "RESULTS.md"
 BACKEND = "http://localhost:3001"
 
 MIME = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".gif": "image/gif"}
-NEG_TYPES = ["brand", "class", "alcohol", "net", "country"]
+# net contents / alcohol are absent from the 2020+ COLA printable forms in our dataset,
+# so the perturbation set covers the fields the applications actually carry.
+NEG_TYPES = ["brand", "class", "country"]
 NEG_FIELD = {"brand": "brand_name", "class": "class_type", "alcohol": "alcohol_content",
              "net": "net_contents", "country": "country_of_origin"}
 
@@ -129,7 +131,7 @@ def load_pool(seed):
             txt = APP_DIR / f"{ttb}.txt"
             if not imgs or not txt.exists():
                 continue
-            if not (clean(r["brand_name"]) and clean(r["alcohol_content"]) and clean(r["net_contents"])):
+            if not clean(r["brand_name"]):
                 continue
             apps.append({"ttb_id": ttb, "images": [i.strip() for i in imgs][:4],
                          "app_text": txt.read_text(encoding="utf-8"), "source": clean(r.get("source_of_product", ""))})
